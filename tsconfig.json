@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "CommonJS",
+    "outDir": "./dist",
+    "rootDirs": ["./src", "."],
+    "strict": true,
+    "esModuleInterop": true,
+    "baseUrl": ".", // Base directory for module resolution
+    "paths": {
+      "*": ["node_modules/*"]
+    }
+  },
+  "include": ["src/**/*", "knexfile.ts", "src/migrations/**/*", "src/routes/Token.routes.ts"]
+}

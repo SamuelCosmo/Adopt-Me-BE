@@ -1,12 +1,15 @@
 import { Request, Response } from 'express'
+import jwt from 'jsonwebtoken'
 import db from '../db/knexConfig'
 import { hashPassword, verifyPassword } from '../utils/hash_passwords'
-import crypto from 'crypto'
+import { AuthRequest } from '../middleware/auth.middleware'
 
 // Get all users (without passwords)
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const users = await db('users').select('id', 'name', 'email', 'created_at')
+    const users = await db('users')
+      .select('id', 'name', 'email', 'created_at')
+      .whereNull('deleted_at')
     res.status(200).json(users)
   } catch (error) {
     console.error('Error fetching users:', error)
@@ -51,12 +54,22 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
 }
 
 // Update user password
-export const updatePassword = async (req: Request, res: Response): Promise<void> => {
+export const updatePassword = async (req: AuthRequest, res: Response): Promise<void> => {
   const { currentPassword, newPassword } = req.body
-  const { id } = req.params
+  const userId = req.userId
 
   try {
-    const user = await db('users').where({ id }).first()
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' })
+      return
+    }
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ error: 'Current password and new password are required' })
+      return
+    }
+
+    const user = await db('users').where({ id: userId }).first()
     if (!user) {
       res.status(404).json({ error: 'User not found' })
       return
@@ -64,13 +77,13 @@ export const updatePassword = async (req: Request, res: Response): Promise<void>
 
     const isMatch = await verifyPassword(currentPassword, user.password)
     if (!isMatch) {
-      res.status(401).json({ error: 'Invalid password' })
+      res.status(401).json({ error: 'Invalid current password' })
       return
     }
 
     const newHashedPassword = await hashPassword(newPassword)
 
-    await db('users').where({ id }).update({
+    await db('users').where({ id: userId }).update({
       password: newHashedPassword,
       updated_at: db.fn.now(),
     })
@@ -83,12 +96,29 @@ export const updatePassword = async (req: Request, res: Response): Promise<void>
 }
 
 // Delete user (soft delete)
-export const deleteUser = async (req: Request, res: Response): Promise<void> => {
-  const { id } = req.params
+export const deleteUser = async (req: AuthRequest, res: Response): Promise<void> => {
+  const userId = req.userId
 
   try {
-    await db('users').where({ id }).update({
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' })
+      return
+    }
+
+    const user = await db('users').where({ id: userId }).first()
+    if (!user) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    await db('users').where({ id: userId }).update({
       deleted_at: db.fn.now(),
+      updated_at: db.fn.now(),
+    })
+
+    // Revoke all user tokens
+    await db('tokens').where({ user_id: userId }).update({
+      is_revoked: true,
       updated_at: db.fn.now(),
     })
 
@@ -99,13 +129,18 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
   }
 }
 
-// Sign In User and Create a token
+// Sign In User and Create a JWT token
 export const signIn = async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body
   console.log('Sign In Request: ', req.body)
   try {
+    if (!email || !password) {
+      res.status(400).json({ error: 'Email and password are required' })
+      return
+    }
+
     // Check if user exists
-    const user = await db('users').where({ email }).first()
+    const user = await db('users').where({ email }).whereNull('deleted_at').first()
     if (!user) {
       res.status(401).json({ error: 'Invalid email or password' })
       return
@@ -118,9 +153,14 @@ export const signIn = async (req: Request, res: Response): Promise<void> => {
       return
     }
 
-    // Generate token
-    const token = crypto.randomBytes(32).toString('hex')
-    const expiresIn = 60 * 60 * 24 * 30 * 6 // 6 months
+    // Generate JWT token (15 minutes)
+    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key'
+    const token = jwt.sign({ userId: user.id, email: user.email }, jwtSecret, {
+      expiresIn: '15m',
+    })
+
+    // Calculate expiration time
+    const expiresIn = 15 * 60 // 15 minutes in seconds
     const expiresAt = new Date(Date.now() + expiresIn * 1000)
 
     // Save token in database
@@ -129,6 +169,7 @@ export const signIn = async (req: Request, res: Response): Promise<void> => {
       token,
       type: 'access_token',
       expires_at: expiresAt,
+      is_revoked: false,
     })
 
     res.status(200).json({
@@ -147,21 +188,28 @@ export const signIn = async (req: Request, res: Response): Promise<void> => {
   }
 }
 
-// Sign Out User and Remove Token
-export const signOut = async (req: Request, res: Response): Promise<void> => {
-  const { token } = req.body
-  console.log('Sign Out Request: ', req.body)
+// Sign Out User and Revoke Token
+export const signOut = async (req: AuthRequest, res: Response): Promise<void> => {
+  const token = req.token
+  const userId = req.userId
+
+  console.log('Sign Out Request from user:', userId)
 
   try {
-    // Check if token exists
-    const tokenExists = await db('tokens').where({ token }).first()
-    if (!tokenExists) {
-      res.status(401).json({ error: 'Invalid token or already signed out' })
+    if (!token || !userId) {
+      res.status(401).json({ error: 'Unauthorized' })
       return
     }
 
-    // Delete token from database
-    await db('tokens').where({ token }).del()
+    // Revoke token instead of deleting it
+    const updated = await db('tokens')
+      .where({ token, user_id: userId })
+      .update({ is_revoked: true, updated_at: db.fn.now() })
+
+    if (!updated) {
+      res.status(401).json({ error: 'Invalid token or already signed out' })
+      return
+    }
 
     res.status(200).json({ message: 'Sign-out successful' })
   } catch (error) {

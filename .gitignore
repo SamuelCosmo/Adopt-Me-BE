@@ -1,40 +1,36 @@
-# Node.js dependencies
+# Dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
 
 # Environment variables
 .env
 .env.local
 .env.*.local
+.env.production
+
+# Build outputs
+dist/
+build/
+.out/
+coverage/
 
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-*.lock
 
-# Build files
-dist/
-build/
-.out/
-.next/
-coverage/
+# TypeScript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+.typescript/
 
-# Database files
-*.sqlite
-*.sqlite-journal
-*.db
-*.db-journal
-
-# System files
-.DS_Store
-Thumbs.db
+# IDE & Editor
 .idea/
 .vscode/
 *.swp
@@ -42,12 +38,39 @@ Thumbs.db
 *.swn
 *.bak
 *.tmp
+*.sublime-project
+*.sublime-workspace
+.vs/
+.DS_Store
+Thumbs.db
 
-# TypeScript cache
-*.tsbuildinfo
-
-# Jest test cache
+# Testing
 jest-cache/
+.nyc_output/
+coverage/
+
+# Database
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.db
+*.db-journal
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+desktop.ini
+
+# Misc
+.cache/
+.turbo/
+tmp/
+temp/
+
 jest-output/
 
 # PM2 logs

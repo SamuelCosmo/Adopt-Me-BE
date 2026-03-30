@@ -1,23 +1,17 @@
 import { Router } from 'express'
 import { getUsers, createUser, updatePassword, deleteUser, signIn, signOut } from '../controllers/User.controller'
+import { verifyAuth } from '../middleware/auth.middleware'
+
 const router = Router()
 
-// Route to get all tasks
+// Public routes
 router.get('/', getUsers)
-
-// Route to create a new task
 router.post('/', createUser)
-
-// Route for user sign-in
 router.post('/signin', signIn)
 
-// Route for user sign-out
-router.post('/signout', signOut)
-
-// Route to update an existing task by its ID
-router.patch('/:id', updatePassword)
-
-// Route to delete a task by its ID
-router.delete('/:id', deleteUser)
+// Protected routes (require authentication)
+router.post('/signout', verifyAuth, signOut)
+router.patch('/password', verifyAuth, updatePassword)
+router.delete('/account', verifyAuth, deleteUser)
 
 export default router

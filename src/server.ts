@@ -1,8 +1,12 @@
+import dotenv from 'dotenv'
+
+// Load environment variables FIRST, before any other imports
+dotenv.config()
+
 import express from 'express'
 import userRoutes from './routes/User.routes'
 import tokenRoutes from './routes/Token.routes'
 const cors = require('cors')
-import db from './db/knexConfig' // Actualiza la importación
 
 const app = express()
 const PORT = process.env.PORT || 4200

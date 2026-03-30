@@ -1,0 +1,84 @@
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Build outputs
+dist/
+build/
+.out/
+coverage/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+.typescript/
+
+# IDE & Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+*.bak
+*.tmp
+*.sublime-project
+*.sublime-workspace
+.vs/
+.DS_Store
+Thumbs.db
+
+# Testing
+jest-cache/
+.nyc_output/
+coverage/
+
+# Database
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.db
+*.db-journal
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+desktop.ini
+
+# Misc
+.cache/
+.turbo/
+tmp/
+temp/
+
+jest-output/
+
+# PM2 logs
+pm2.log
+pm2.pid
+
+# Git hooks
+.husky/_/
+
+# Docker
+docker-compose.override.yml

@@ -1,0 +1,62 @@
+{
+  "species": [
+    {
+      "key": "dog",
+      "label": "Dog"
+    },
+    {
+      "key": "cat",
+      "label": "Cat"
+    },
+    {
+      "key": "rabbit",
+      "label": "Rabbit"
+    },
+    {
+      "key": "bird",
+      "label": "Bird"
+    },
+    {
+      "key": "other",
+      "label": "Other"
+    }
+  ],
+  "breedsBySpecies": {
+    "dog": [
+      "mixed",
+      "labrador",
+      "golden_retriever",
+      "german_shepherd",
+      "bulldog",
+      "poodle",
+      "beagle",
+      "boxer"
+    ],
+    "cat": [
+      "mixed",
+      "persian",
+      "siamese",
+      "maine_coon",
+      "ragdoll",
+      "british_shorthair",
+      "bengal"
+    ],
+    "rabbit": [
+      "mixed",
+      "holland_lop",
+      "mini_rex",
+      "lionhead",
+      "netherland_dwarf"
+    ],
+    "bird": [
+      "mixed",
+      "parakeet",
+      "canary",
+      "cockatiel",
+      "lovebird"
+    ],
+    "other": [
+      "other"
+    ]
+  }
+}

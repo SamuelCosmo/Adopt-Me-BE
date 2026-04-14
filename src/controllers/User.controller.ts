@@ -153,14 +153,14 @@ export const signIn = async (req: Request, res: Response): Promise<void> => {
       return
     }
 
-    // Generate JWT token (15 minutes)
-    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key'
+    // Generate JWT token (15 days)
+    const jwtSecret = process.env.JWT_SECRET!
     const token = jwt.sign({ userId: user.id, email: user.email }, jwtSecret, {
-      expiresIn: '15m',
+      expiresIn: '15d',
     })
 
     // Calculate expiration time
-    const expiresIn = 15 * 60 // 15 minutes in seconds
+    const expiresIn = 15 * 24 * 60 * 60 // 15 days in seconds
     const expiresAt = new Date(Date.now() + expiresIn * 1000)
 
     // Save token in database

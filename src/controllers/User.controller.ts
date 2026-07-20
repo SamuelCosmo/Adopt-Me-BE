@@ -3,13 +3,13 @@ import jwt from 'jsonwebtoken'
 import db from '../db/knexConfig'
 import { hashPassword, verifyPassword } from '../utils/hash_passwords'
 import { AuthRequest } from '../middleware/auth.middleware'
+import { getRequestFiles, parseImages, parseImageUrls } from '../utils/images'
+import { CloudinaryImageInput, deleteImagesFromCloudinary, uploadImageFilesToCloudinary } from '../utils/cloudinary'
 
 // Get all users (without passwords)
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const users = await db('users')
-      .select('id', 'name', 'email', 'created_at')
-      .whereNull('deleted_at')
+    const users = await db('users').select('id', 'name', 'email', 'created_at').whereNull('deleted_at')
     res.status(200).json(users)
   } catch (error) {
     console.error('Error fetching users:', error)
@@ -215,5 +215,58 @@ export const signOut = async (req: AuthRequest, res: Response): Promise<void> =>
   } catch (error) {
     console.error('Error signing out:', error)
     res.status(500).json({ error: 'Failed to sign out' })
+  }
+}
+
+// Set User Profile Image
+export const setProfileImage = async (req: AuthRequest, res: Response): Promise<void> => {
+  const userId = req.userId
+  const requestFiles = getRequestFiles(req)
+
+  try {
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' })
+      return
+    }
+
+    if (requestFiles.length === 0) {
+      res.status(400).json({ error: 'Image file is required' })
+      return
+    }
+
+    const user = await db('users').where({ id: userId }).first()
+    if (!user) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    // Upload image file to Cloudinary
+    const uploadedImages = await uploadImageFilesToCloudinary(requestFiles, `adopt-me/${userId}/profile`)
+
+    if (uploadedImages.length === 0) {
+      res.status(400).json({ error: 'Failed to upload image' })
+      return
+    }
+
+    // Delete old profile image if exists
+    if (user.profile_image) {
+      await deleteImagesFromCloudinary([user.profile_image])
+    }
+
+    // Update user with new profile image URL
+    await db('users')
+      .where({ id: userId })
+      .update({
+        profile_image: uploadedImages[0].url,
+        updated_at: db.fn.now(),
+      })
+
+    res.status(200).json({
+      message: 'Profile image updated successfully',
+      profile_image: uploadedImages[0].url,
+    })
+  } catch (error) {
+    console.error('Error setting profile image:', error)
+    res.status(500).json({ error: 'Failed to set profile image' })
   }
 }

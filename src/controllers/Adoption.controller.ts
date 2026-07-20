@@ -7,6 +7,8 @@ import {
   uploadImageFilesToCloudinary,
   uploadImagesToCloudinary,
 } from '../utils/cloudinary'
+import { getRequestFiles, parseImages, parseImageUrls, validateImages } from '../utils/images'
+import { ImageInput } from '../utils/types'
 
 const VALID_STATUSES = ['active', 'pending', 'adopted', 'cancelled']
 const VALID_GENDERS = ['male', 'female', 'unknown']
@@ -40,43 +42,12 @@ const ADOPTION_SELECT_COLUMNS = {
   byId: ['a.deleted_at'],
 }
 
-type AdoptionImageInput = {
-  url: string
-  order: number
-}
-
-type AdoptionImageStored = {
-  url: string
-}
-
 type AdoptionWithUserRow = {
   user_id: number
   owner_name: string | null
   owner_phone: string | null
   images: unknown
 } & Record<string, unknown>
-
-const parseImages = (value: unknown): unknown => {
-  if (typeof value === 'string') {
-    try {
-      return JSON.parse(value)
-    } catch {
-      return value
-    }
-  }
-  return value
-}
-
-const parseImageUrls = (value: unknown): string[] => {
-  const parsed = parseImages(value)
-  if (!Array.isArray(parsed)) {
-    return []
-  }
-
-  return parsed
-    .map((image) => (image as AdoptionImageStored)?.url)
-    .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
-}
 
 const normalizeAdoption = <T extends AdoptionWithUserRow>(adoption: T) => {
   const { owner_name, owner_phone, ...rest } = adoption
@@ -92,39 +63,12 @@ const normalizeAdoption = <T extends AdoptionWithUserRow>(adoption: T) => {
   }
 }
 
-const validateImages = (images: unknown): string | null => {
-  if (!Array.isArray(images)) return 'images must be an array'
-  if (images.length < 1 || images.length > 6) return 'images must contain between 1 and 6 elements'
-
-  const usedOrders = new Set<number>()
-  for (const image of images as AdoptionImageInput[]) {
-    if (!image || typeof image.url !== 'string' || !image.url.trim()) {
-      return 'each image must include a valid url'
-    }
-
-    if (!Number.isInteger(image.order) || image.order < 1 || image.order > 6) {
-      return 'each image order must be an integer between 1 and 6'
-    }
-
-    if (usedOrders.has(image.order)) {
-      return 'image order values must be unique'
-    }
-    usedOrders.add(image.order)
-  }
-
-  return null
-}
-
 const getUploadErrorMessage = (error: unknown, fallbackMessage: string) => {
   if (error instanceof Error && error.message.includes('Cloudinary is not configured')) {
     return 'Image upload service is not configured'
   }
 
   return fallbackMessage
-}
-
-const getRequestFiles = (req: AuthRequest): Express.Multer.File[] => {
-  return Array.isArray(req.files) ? req.files : []
 }
 
 const buildAdoptionSelectQuery = (...columns: string[]) => {
@@ -313,7 +257,7 @@ export const createAdoption = async (req: AuthRequest, res: Response): Promise<v
     const uploadedImages =
       requestFiles.length > 0
         ? await uploadImageFilesToCloudinary(requestFiles, `adopt-me/${userId}/adoptions`)
-        : await uploadImagesToCloudinary(parsedImages as AdoptionImageInput[], `adopt-me/${userId}/adoptions`)
+        : await uploadImagesToCloudinary(parsedImages as ImageInput[], `adopt-me/${userId}/adoptions`)
 
     const [created] = await db('adoptions')
       .insert({
@@ -475,7 +419,7 @@ export const updateAdoption = async (req: AuthRequest, res: Response): Promise<v
       }
 
       uploadedImages = await uploadImagesToCloudinary(
-        parsedImages as AdoptionImageInput[],
+        parsedImages as ImageInput[],
         `adopt-me/${userId}/adoptions`,
       )
     }

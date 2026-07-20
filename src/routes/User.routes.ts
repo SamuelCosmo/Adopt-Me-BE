@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getUsers, createUser, updatePassword, deleteUser, signIn, signOut } from '../controllers/User.controller'
+import { getUsers, createUser, updatePassword, deleteUser, signIn, signOut, setProfileImage } from '../controllers/User.controller'
 import { verifyAuth } from '../middleware/auth.middleware'
 
 const router = Router()
@@ -13,5 +13,6 @@ router.post('/signin', signIn)
 router.post('/signout', verifyAuth, signOut)
 router.patch('/password', verifyAuth, updatePassword)
 router.delete('/account', verifyAuth, deleteUser)
+router.patch('/profile-image', verifyAuth, setProfileImage)
 
 export default router
